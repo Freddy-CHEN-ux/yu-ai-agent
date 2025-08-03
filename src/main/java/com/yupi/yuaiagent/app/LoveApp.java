@@ -3,6 +3,7 @@ package com.yupi.yuaiagent.app;
 import com.yupi.yuaiagent.advisor.MyLoggerAdvisor;
 import com.yupi.yuaiagent.advisor.ReReadingAdvisor;
 import com.yupi.yuaiagent.chatmemory.FileBasedChatMemory;
+import com.yupi.yuaiagent.chatmemory.MySQLChatMemory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
@@ -11,6 +12,7 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -29,13 +31,13 @@ public class LoveApp {
             "恋爱状态询问沟通、习惯差异引发的矛盾；已婚状态询问家庭责任与亲属关系处理的问题。" +
             "引导用户详述事情经过、对方反应及自身想法，以便给出专属解决方案。";
 
-    public LoveApp(ChatModel dashscopeChatModel) {
-
-        // 初始化基于文件的对话记忆
-        String fileDir = System.getProperty("user.dir") + "/tmp/chat-memory";
-        ChatMemory chatMemory = new FileBasedChatMemory(fileDir);
-//        // 初始化基于内存的对话记忆
-//        ChatMemory chatMemory = new InMemoryChatMemory();
+    public LoveApp(ChatModel dashscopeChatModel, 
+                   MySQLChatMemory mySQLChatMemory,
+                   @Value("${app.chat.memory.type:mysql}") String memoryType) {
+        
+        // 选择对话记忆实现方式
+        ChatMemory chatMemory = chooseChatMemory(mySQLChatMemory, memoryType);
+        
         chatClient = ChatClient.builder(dashscopeChatModel)
                 .defaultSystem(SYSTEM_PROMPT)
                 .defaultAdvisors(
@@ -44,6 +46,40 @@ public class LoveApp {
 //                        new ReReadingAdvisor()
                 )
                 .build();
+    }
+
+    /**
+     * 根据配置选择 ChatMemory 实现
+     */
+    private ChatMemory chooseChatMemory(MySQLChatMemory mySQLChatMemory, String memoryType) {
+        ChatMemory chatMemory;
+        try {
+            switch (memoryType.toLowerCase()) {
+                case "mysql" -> {
+                    chatMemory = mySQLChatMemory;
+                    log.info("Using MySQL ChatMemory for conversation storage");
+                }
+                case "file" -> {
+                    String fileDir = System.getProperty("user.dir") + "/tmp/chat-memory";
+                    chatMemory = new FileBasedChatMemory(fileDir);
+                    log.info("Using File-based ChatMemory for conversation storage: {}", fileDir);
+                }
+                case "memory" -> {
+                    chatMemory = new InMemoryChatMemory();
+                    log.info("Using In-Memory ChatMemory for conversation storage");
+                }
+                default -> {
+                    log.warn("Unknown memory type: {}, falling back to MySQL", memoryType);
+                    chatMemory = mySQLChatMemory;
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to initialize {} ChatMemory, falling back to FileBasedChatMemory: {}", 
+                      memoryType, e.getMessage());
+            String fileDir = System.getProperty("user.dir") + "/tmp/chat-memory";
+            chatMemory = new FileBasedChatMemory(fileDir);
+        }
+        return chatMemory;
     }
 
     public String doChat(String message, String chatId) {

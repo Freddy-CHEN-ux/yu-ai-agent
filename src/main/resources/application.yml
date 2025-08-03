@@ -8,6 +8,16 @@ spring:
       base-url: http://localhost:11434
       chat:
         model: gemma3:1b
+  # JPA 配置
+  jpa:
+    hibernate:
+      ddl-auto: update  # 自动创建/更新表结构
+    show-sql: true      # 显示 SQL 语句（开发环境）
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect  # 适用于 MySQL 5.7+ 的通用方言
+        format_sql: true
+        use_sql_comments: true
 server:
   port: 8123
   servlet:
@@ -34,3 +44,9 @@ logging:
   level:
     org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor: debug
 
+
+# 应用自定义配置
+app:
+  chat:
+    memory:
+      type: mysql  # 可选值: mysql, file, memory
