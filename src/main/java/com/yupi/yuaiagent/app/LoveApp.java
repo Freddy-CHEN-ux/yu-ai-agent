@@ -1,6 +1,7 @@
 package com.yupi.yuaiagent.app;
 
 import com.yupi.yuaiagent.advisor.MyLoggerAdvisor;
+import com.yupi.yuaiagent.advisor.ProhibitedWordsAdvisor;
 import com.yupi.yuaiagent.advisor.ReReadingAdvisor;
 import com.yupi.yuaiagent.chatmemory.FileBasedChatMemory;
 import lombok.extern.slf4j.Slf4j;
@@ -36,9 +37,15 @@ public class LoveApp {
         ChatMemory chatMemory = new FileBasedChatMemory(fileDir);
 //        // 初始化基于内存的对话记忆
 //        ChatMemory chatMemory = new InMemoryChatMemory();
+        
+        // 初始化违禁词校验 Advisor
+        ProhibitedWordsAdvisor prohibitedWordsAdvisor = new ProhibitedWordsAdvisor();
+        prohibitedWordsAdvisor.init();
+        
         chatClient = ChatClient.builder(dashscopeChatModel)
                 .defaultSystem(SYSTEM_PROMPT)
                 .defaultAdvisors(
+                        prohibitedWordsAdvisor,
                         new MessageChatMemoryAdvisor(chatMemory),
                         new MyLoggerAdvisor()
 //                        new ReReadingAdvisor()

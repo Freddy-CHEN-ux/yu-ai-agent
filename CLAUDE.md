@@ -56,6 +56,7 @@ com.yupi.yuaiagent/
 │   └── LoveApp.java       # 恋爱咨询主应用类 | Main love consultation app
 ├── advisor/               # 拦截器和增强器 | Advisors and enhancers
 │   ├── MyLoggerAdvisor.java      # 自定义日志拦截器 | Custom logging advisor
+│   ├── ProhibitedWordsAdvisor.java # 违禁词校验拦截器 | Prohibited words validation advisor
 │   └── ReReadingAdvisor.java     # 重读拦截器 | Re-reading advisor
 ├── chatmemory/           # 对话记忆管理 | Chat memory management
 │   └── FileBasedChatMemory.java  # 基于文件的对话记忆 | File-based chat memory
@@ -100,6 +101,7 @@ com.yupi.yuaiagent/
 
 **2. Advisor 模式 | Advisor Pattern**
 - `MessageChatMemoryAdvisor`: 对话记忆管理
+- `ProhibitedWordsAdvisor`: 违禁词内容安全校验
 - `MyLoggerAdvisor`: 请求/响应日志记录
 - `ReReadingAdvisor`: 重读机制 (可选)
 - 支持链式调用和参数传递
@@ -110,7 +112,13 @@ com.yupi.yuaiagent/
 - 内存实现: `InMemoryChatMemory` (可选)
 - 会话 ID 隔离和消息数量限制
 
-**4. 多模型支持 | Multi-Model Support**
+**4. 违禁词内容安全机制 | Content Safety Mechanism**
+- 基于文件的违禁词库管理 (`resources/prohibited/prohibited-words.txt`)
+- 大小写不敏感的违禁词检测
+- 检测到违禁词时抛出异常，阻止请求继续处理
+- 自定义异常类型 `ProhibitedWordException`
+
+**5. 多模型支持 | Multi-Model Support**
 - 配置化切换不同 AI 模型
 - 统一的 ChatModel 接口
 - 环境隔离的配置管理
@@ -127,6 +135,7 @@ com.yupi.yuaiagent/
 1. 实现 `CallAroundAdvisor` 或 `StreamAroundAdvisor` 接口
 2. 重写 `getName()`, `getOrder()`, `aroundCall()` 方法
 3. 在 LoveApp 构建 ChatClient 时添加到 `defaultAdvisors()`
+4. **违禁词管理**: 通过修改 `resources/prohibited/prohibited-words.txt` 文件管理违禁词库
 
 ### 对话记忆存储扩展 | Extending Chat Memory Storage
 1. 实现 `ChatMemory` 接口
@@ -142,6 +151,7 @@ com.yupi.yuaiagent/
 - 单元测试位于 `src/test/java/` 对应包结构下
 - 集成测试可以使用 `@SpringBootTest` 注解
 - AI 调用测试建议使用 Mock 或测试专用 API 密钥
+- **违禁词测试**: 包含违禁词检测、大小写不敏感检测和正常输入测试用例
 
 ### API 开发规范 | API Development Standards
 - 控制器放在 `controller` 包下
@@ -155,3 +165,4 @@ com.yupi.yuaiagent/
 2. **对话记忆文件**: `tmp/chat-memory/` 目录包含序列化的对话数据，注意隐私保护
 3. **模型配置**: Ollama 需要本地安装并运行在 localhost:11434
 4. **Java 版本**: 项目要求 Java 21，确保本地环境匹配
+5. **违禁词安全**: `resources/prohibited/prohibited-words.txt` 包含敏感内容，部署时注意文件权限管理
