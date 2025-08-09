@@ -59,8 +59,15 @@ com.yupi.yuaiagent/
 │   └── ReReadingAdvisor.java     # 重读拦截器 | Re-reading advisor
 ├── chatmemory/           # 对话记忆管理 | Chat memory management
 │   └── FileBasedChatMemory.java  # 基于文件的对话记忆 | File-based chat memory
+├── constant/             # 常量定义 | Constants
+│   └── FileConstant.java         # 文件路径常量 | File path constants
 ├── controller/           # REST 控制器 | REST controllers
 │   └── HealthController.java     # 健康检查控制器 | Health check controller
+├── tools/                # 工具调用功能 | Tool Function Calling (新增)
+│   ├── FileOperationTool.java    # 文件操作工具 | File operation tool
+│   ├── ResourceDownloadTool.java # 资源下载工具 | Resource download tool
+│   ├── PDFGenerationTool.java    # PDF生成工具 | PDF generation tool
+│   └── ToolRegistration.java     # 工具注册配置 | Tool registration config
 ├── rag/                  # RAG 技术栈 | RAG Technology Stack
 │   ├── LoveAppDocumentLoader.java              # 文档加载器 | Document loader
 │   ├── LoveAppVectorStoreConfig.java           # 向量存储配置 | Vector store config
@@ -108,10 +115,18 @@ com.yupi.yuaiagent/
 - 文件系统存储在 `tmp/chat-memory/` | File system storage
 - 文档存储在 `src/main/resources/document/` | Document storage
 
+**工具调用集成 | Tool Function Calling Integration:** (新增)
+- **Spring AI Tools**: 基于注解的工具函数定义和调用
+- **文件操作**: 读写文件到指定目录 (`tmp/file/`)
+- **资源下载**: HTTP资源下载到本地文件系统 (`tmp/download/`)
+- **PDF生成**: iText PDF生成库，支持中文字体 (`tmp/pdf/`)
+- **工具注册**: 统一工具注册和管理机制
+
 **开发工具 | Development Tools:**
 - Lombok: 代码简化 | Code simplification
 - Knife4j: API 文档增强 | Enhanced API documentation
 - Hutool: 工具类库 | Utility library
+- iText PDF: PDF 文档生成库 | PDF document generation library
 
 ### 关键架构概念 | Key Architectural Concepts
 
@@ -162,6 +177,26 @@ com.yupi.yuaiagent/
 - **错误处理 | Error Handling**: 检索失败时的优雅降级机制
 - **结果融合 | Result Fusion**: 本地向量存储 + 云端知识库结合
 
+**6. 工具调用架构 | Tool Function Calling Architecture** (新增)
+
+**工具定义与注册 | Tool Definition & Registration:**
+- **@Tool 注解**: Spring AI 提供的工具函数标注，定义工具描述
+- **@ToolParam 注解**: 参数描述和验证，提供类型安全的参数处理
+- **ToolCallback 机制**: 统一的工具调用回调接口
+- **ToolRegistration**: 集中式工具注册和管理配置
+
+**工具执行与集成 | Tool Execution & Integration:**
+- **ChatClient.tools()**: 在对话客户端中集成工具调用能力
+- **自动工具选择**: AI 模型根据用户意图自动选择合适的工具
+- **参数提取**: 从自然语言中提取工具调用所需的参数
+- **结果反馈**: 工具执行结果自动融入对话上下文
+
+**文件系统管理 | File System Management:**
+- **分类存储**: 不同工具的文件按类型分目录存储 (file/, download/, pdf/)
+- **路径统一**: 通过 FileConstant 统一管理文件路径 (`tmp/` 根目录)
+- **目录自动创建**: 工具执行时自动创建必要的目录结构
+- **异常处理**: 完整的文件操作异常处理和错误信息返回
+
 ## 开发指南 | Development Guidelines
 
 ### 添加新的 AI 调用方式 | Adding New AI Invocation Methods
@@ -169,6 +204,33 @@ com.yupi.yuaiagent/
 2. 实现 `CommandLineRunner` 接口 (可选)
 3. 使用 `@Component` 注解但默认注释以避免自动启动
 4. 参考现有的 `SpringAIInvoke.java` 或 `LangChainAiInvoke.java`
+
+### 工具调用功能扩展 | Extending Tool Function Calling (新增)
+
+**新增工具类型 | Adding New Tool Types:**
+1. **创建工具类**: 在 `tools` 包下创建新的工具类
+2. **使用注解标注**: 使用 `@Tool` 标注方法，描述工具功能
+3. **参数描述**: 使用 `@ToolParam` 标注参数，提供清晰的参数说明
+4. **异常处理**: 实现完整的异常处理和错误信息返回
+5. **注册工具**: 在 `ToolRegistration.java` 中注册新工具
+
+**工具开发最佳实践 | Tool Development Best Practices:**
+1. **功能单一**: 每个工具应专注于单一功能，避免过于复杂
+2. **参数验证**: 对输入参数进行适当的验证和清理
+3. **路径安全**: 使用统一的文件路径管理，避免路径遍历攻击
+4. **资源管理**: 正确管理文件句柄和网络连接等资源
+5. **错误信息**: 返回清晰、有用的错误信息帮助用户理解问题
+
+**工具测试策略 | Tool Testing Strategy:**
+1. **单元测试**: 为每个工具类编写单元测试，覆盖正常和异常情况
+2. **集成测试**: 在 `LoveAppTest.doChatWithTools()` 中测试工具调用流程
+3. **文件系统测试**: 验证文件创建、读写和目录管理功能
+4. **边界条件**: 测试大文件、特殊字符、无效URL等边界情况
+
+**当前已实现工具 | Currently Implemented Tools:**
+- **FileOperationTool**: 文件读写操作，支持UTF-8编码
+- **ResourceDownloadTool**: HTTP资源下载，基于Hutool HTTP客户端
+- **PDFGenerationTool**: PDF文档生成，支持中文字体显示
 
 ### 扩展 Advisor 功能 | Extending Advisor Functionality
 1. 实现 `CallAroundAdvisor` 或 `StreamAroundAdvisor` 接口
@@ -213,6 +275,7 @@ com.yupi.yuaiagent/
 - 集成测试可以使用 `@SpringBootTest` 注解
 - AI 调用测试建议使用 Mock 或测试专用 API 密钥
 - **RAG 测试**: 使用 PgVectorVectorStoreConfigTest 和 MultiQueryExpanderDemoTest 作为参考
+- **工具调用测试**: 使用 FileOperationToolTest, ResourceDownloadToolTest, PDFGenerationToolTest 作为参考
 
 ### API 开发规范 | API Development Standards
 - 控制器放在 `controller` 包下
@@ -239,3 +302,12 @@ com.yupi.yuaiagent/
 8. **性能优化**: 
    - 关键词增强会调用 LLM，建议合理设置关键词数量 (默认5个)
    - 向量存储加载可能耗时，建议实施懒加载或缓存策略
+9. **工具调用安全**: (新增)
+   - 文件操作仅限于 `tmp/` 目录下，避免访问系统敏感文件
+   - 资源下载需要验证URL安全性，避免内网地址访问
+   - PDF生成使用内置字体，避免字体文件路径遍历
+   - 工具执行结果可能包含敏感信息，注意日志记录的安全性
+10. **文件系统管理**: (新增)
+   - 工具生成的文件保存在 `tmp/` 目录下，按工具类型分目录
+   - 生产环境应定期清理临时文件，防止磁盘空间不足
+   - 建议设置文件大小和数量限制，防止恶意用户滥用
