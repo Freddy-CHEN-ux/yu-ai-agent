@@ -66,6 +66,7 @@ cd yu-agent-search-mcp-server && mvn spring-boot:run
 - 健康检查: `GET /api/health`
 - Swagger UI: `http://localhost:8123/api/swagger-ui.html`
 - API 文档: `http://localhost:8123/api/v3/api-docs`
+- **AI 对话接口**: `GET /api/ai/love_app/chat/sse` - 恋爱咨询 SSE 流式对话接口 (新增)
 
 ## 项目架构 | Project Architecture
 
@@ -84,7 +85,8 @@ com.yupi.yuaiagent/
 ├── constant/             # 常量定义 | Constants
 │   └── FileConstant.java         # 文件路径常量 | File path constants
 ├── controller/           # REST 控制器 | REST controllers
-│   └── HealthController.java     # 健康检查控制器 | Health check controller
+│   ├── HealthController.java     # 健康检查控制器 | Health check controller
+│   └── AiController.java         # AI 对话接口控制器 | AI chat API controller (新增)
 ├── tools/                # 工具调用功能 | Tool Function Calling
 │   ├── FileOperationTool.java    # 文件操作工具 | File operation tool
 │   ├── ResourceDownloadTool.java # 资源下载工具 | Resource download tool
@@ -228,7 +230,31 @@ yu-agent-search-mcp-server/
 - **错误处理 | Error Handling**: 检索失败时的优雅降级机制
 - **结果融合 | Result Fusion**: 本地向量存储 + 云端知识库结合
 
-**6. 工具调用架构 | Tool Function Calling Architecture** (新增)
+**6. RESTful API 接口架构 | RESTful API Architecture** (新增)
+
+**控制器设计 | Controller Design:**
+- **AiController**: AI 对话接口控制器，提供恋爱咨询服务的 HTTP API
+- **路由映射**: `/api/ai/` 路径前缀，统一管理 AI 相关接口
+- **参数处理**: 支持 `message` (用户消息) 和 `chatId` (会话ID) 参数
+- **响应格式**: Server-Sent Events (SSE) 流式响应
+
+**SSE 流式接口 | SSE Streaming Interface:**
+- **接口地址**: `GET /api/ai/love_app/chat/sse`
+- **响应类型**: `text/event-stream` - 服务器发送事件流
+- **数据处理**: 基于 Reactor Flux 的响应式编程模型
+- **实时交互**: 支持实时的 AI 对话流式输出
+
+**核心对话方法 | Core Chat Methods:**
+- **doChatByStream()**: SSE 流式对话，支持实时响应输出 (API 接口使用)
+- **doChat()**: 同步对话，返回完整响应内容 (内部逻辑使用)
+- **doChatWithReport()**: 结构化恋爱报告生成，返回标题和建议列表
+- **doChatWithRag()**: 基于本地向量存储的 RAG 增强对话
+- **doChatWithCloudRag()**: 基于云端知识库的 RAG 增强对话
+- **doChatWithPgRag()**: 基于 PostgreSQL 向量存储的 RAG 增强对话
+- **doChatWithTools()**: 集成工具调用功能的对话
+- **doChatWithMcp()**: 集成 MCP 服务器功能的对话
+
+**7. 工具调用架构 | Tool Function Calling Architecture**
 
 **工具定义与注册 | Tool Definition & Registration:**
 - **@Tool 注解**: Spring AI 提供的工具函数标注，定义工具描述
@@ -248,7 +274,7 @@ yu-agent-search-mcp-server/
 - **目录自动创建**: 工具执行时自动创建必要的目录结构
 - **异常处理**: 完整的文件操作异常处理和错误信息返回
 
-**7. MCP 服务器架构 | MCP Server Architecture (新增)**
+**8. MCP 服务器架构 | MCP Server Architecture**
 
 **服务器设计模式 | Server Design Pattern:**
 - **Spring Boot 自动配置**: 基于 Spring AI MCP WebMVC Starter 自动配置
@@ -387,11 +413,33 @@ yu-agent-search-mcp-server/
 - **工具调用测试**: 使用 FileOperationToolTest, ResourceDownloadToolTest, PDFGenerationToolTest 作为参考
 - **MCP 服务器测试**: MCP 工具测试位于 `yu-agent-search-mcp-server/src/test/java/` 包下，使用 ImageSearchToolTest 作为参考 (新增)
 
-### API 开发规范 | API Development Standards
-- 控制器放在 `controller` 包下
-- 使用 RESTful 风格的 URL 设计
-- 统一的错误处理和响应格式
-- Swagger/OpenAPI 文档自动生成
+### REST API 开发指南 | REST API Development Guide (新增)
+
+**新增 AI 接口 | Adding AI Endpoints:**
+1. **控制器扩展**: 在 `AiController` 中添加新的端点方法
+2. **路径映射**: 使用 `@GetMapping` 或 `@PostMapping` 配置路由
+3. **参数处理**: 支持 `@RequestParam` 查询参数和 `@RequestBody` 请求体
+4. **响应格式**: 选择同步返回 (String) 或流式返回 (Flux<String>)
+5. **业务集成**: 调用 LoveApp 中对应的对话方法
+
+**SSE 流式接口开发 | SSE Streaming Interface Development:**
+1. **响应类型**: 设置 `produces = MediaType.TEXT_EVENT_STREAM_VALUE`
+2. **返回类型**: 使用 `Flux<String>` 作为返回类型
+3. **流式处理**: 调用 LoveApp 的 `doChatByStream()` 方法
+4. **错误处理**: 实现流式错误处理和连接管理
+5. **客户端兼容**: 确保前端正确处理 SSE 事件流
+
+**接口测试策略 | API Testing Strategy:**
+1. **Swagger 测试**: 使用 `http://localhost:8123/api/swagger-ui.html` 进行接口测试
+2. **Postman 测试**: 配置 Accept 头为 `text/event-stream` 测试 SSE 接口
+3. **浏览器测试**: 使用 EventSource API 测试流式响应
+4. **单元测试**: 为控制器方法编写 `@WebMvcTest` 单元测试
+5. **集成测试**: 使用 `@SpringBootTest` 进行完整的接口集成测试
+
+**当前可用接口 | Currently Available Endpoints:**
+- **GET /api/ai/love_app/chat/sse**: 恋爱咨询 SSE 流式对话
+- **参数**: message (用户消息), chatId (会话ID)
+- **响应**: text/event-stream 格式的实时 AI 回复
 
 ## 重要注意事项 | Important Notes
 
@@ -426,7 +474,12 @@ yu-agent-search-mcp-server/
    - 第三方 API 密钥 (如 Pexels) 需要安全管理，避免泄露
    - MCP 服务器支持 SSE 和 STDIO 两种通信模式，根据客户端需求选择
    - 图像搜索等功能依赖外部 API，需要确保网络连接和 API 可用性
-12. **多模块项目管理**: (新增)
+13. **REST API 接口**: (新增)
+   - API 接口地址需要包含 `/api` 上下文路径前缀
+   - SSE 流式接口需要客户端支持 Server-Sent Events 处理
+   - 对话会话使用 `chatId` 参数进行会话隔离和记忆管理
+   - 流式响应可能因网络或客户端断开连接而中断，需要实现重连机制
+14. **多模块项目管理**: (新增)
    - 项目现在包含主应用和 MCP 服务器两个独立的 Spring Boot 应用
    - 两个应用可以独立启动、部署和扩展
    - 建议使用 Maven 多模块管理或独立仓库管理两个应用
