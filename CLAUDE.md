@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述 | Project Overview
 
-这是一个基于 Spring Boot 3.4.8 的 AI 代理项目，专注于构建恋爱心理咨询应用。项目集成了多种 AI 框架和模型，包括 Spring AI、LangChain4j、阿里云 DashScope 和 Ollama。项目现已集成完整的 RAG (Retrieval-Augmented Generation) 技术栈，提供智能文档检索和知识增强功能。新增 MCP (Model Context Protocol) 服务器，提供图像搜索等扩展功能。
+这是一个基于 Spring Boot 3.4.8 的 AI 代理项目，专注于构建恋爱心理咨询应用。项目集成了多种 AI 框架和模型，包括 Spring AI、LangChain4j、阿里云 DashScope 和 Ollama。项目现已集成完整的 RAG (Retrieval-Augmented Generation) 技术栈，提供智能文档检索和知识增强功能。新增 MCP (Model Context Protocol) 服务器，提供图像搜索等扩展功能。现已包含前端项目，基于 Vue 3 + Vite 构建，提供完整的前后端分离架构和实时对话界面。
 
-This is a Spring Boot 3.4.8-based AI agent project focused on building a love psychology consultation application. The project integrates multiple AI frameworks and models including Spring AI, LangChain4j, Alibaba Cloud DashScope, and Ollama. The project now includes a complete RAG (Retrieval-Augmented Generation) technology stack, providing intelligent document retrieval and knowledge enhancement capabilities. A new MCP (Model Context Protocol) server has been added to provide extended functionality such as image search.
+This is a Spring Boot 3.4.8-based AI agent project focused on building a love psychology consultation application. The project integrates multiple AI frameworks and models including Spring AI, LangChain4j, Alibaba Cloud DashScope, and Ollama. The project now includes a complete RAG (Retrieval-Augmented Generation) technology stack, providing intelligent document retrieval and knowledge enhancement capabilities. A new MCP (Model Context Protocol) server has been added to provide extended functionality such as image search. The project now includes a frontend application built with Vue 3 + Vite, providing a complete front-end/back-end separation architecture and real-time chat interface.
 
 ## 开发环境和构建命令 | Development Environment and Build Commands
 
@@ -46,10 +46,42 @@ mvn spring-boot:run
 cd yu-agent-search-mcp-server && mvn spring-boot:run
 ```
 
+### 前端开发命令 | Frontend Development Commands (新增)
+```bash
+# 进入前端目录 | Navigate to frontend directory
+cd yu-ai-agent-frontend
+
+# 安装依赖 | Install dependencies
+npm install
+
+# 启动开发服务器 | Start development server
+npm run dev
+
+# 构建生产版本 | Build for production
+npm run build
+
+# 预览生产构建 | Preview production build
+npm run preview
+
+# 完整开发环境启动 | Start complete development environment
+# 终端1: 启动后端主应用 | Terminal 1: Start backend main app
+mvn spring-boot:run
+# 终端2: 启动 MCP 服务器 | Terminal 2: Start MCP server  
+cd yu-agent-search-mcp-server && mvn spring-boot:run
+# 终端3: 启动前端应用 | Terminal 3: Start frontend app
+cd yu-ai-agent-frontend && npm run dev
+```
+
 ### 配置文件 | Configuration Files
-- `application.yml`: 主配置文件，包含服务器端口(8123)、Ollama 配置、API 文档配置
+- `application.yml`: 主配置文件，包含服务器端口(8123)、Ollama 配置、API 文档配置、CORS 跨域配置
 - `application-local.yml`: 本地开发配置，包含 DashScope API 密钥
 - 默认激活 local 配置文件 | Default active profile: local
+
+### 前端配置文件 | Frontend Configuration Files (新增)
+- `package.json`: 前端项目依赖和构建脚本配置
+- `vite.config.js`: Vite 构建工具配置，包含开发服务器端口(5173)
+- `src/main.js`: 前端应用入口文件，包含路由配置
+- `src/App.vue`: 前端应用根组件
 
 ### MCP 服务器配置 | MCP Server Configuration (新增)
 - **MCP 服务端口**: `8127`
@@ -61,12 +93,21 @@ cd yu-agent-search-mcp-server && mvn spring-boot:run
 
 ### 服务端点 | Service Endpoints
 - **主应用端口**: `8123`
+- **前端应用端口**: `5173` (新增)
 - **MCP 服务端口**: `8127` (新增)
 - 上下文路径: `/api`
 - 健康检查: `GET /api/health`
 - Swagger UI: `http://localhost:8123/api/swagger-ui.html`
 - API 文档: `http://localhost:8123/api/v3/api-docs`
 - **AI 对话接口**: `GET /api/ai/love_app/chat/sse` - 恋爱咨询 SSE 流式对话接口 (新增)
+- **前端应用**: `http://localhost:5173` - Vue 3 + Vite 前端应用 (新增)
+
+### 跨域配置 | CORS Configuration (新增)
+- **允许的域名**: `http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174`
+- **允许的请求方法**: `GET, POST, PUT, DELETE, OPTIONS`
+- **允许的请求头**: `*` (所有请求头)
+- **允许发送Cookie**: `true`
+- **预检请求缓存时间**: `3600秒` (1小时)
 
 ## 项目架构 | Project Architecture
 
@@ -82,6 +123,8 @@ com.yupi.yuaiagent/
 │   └── ReReadingAdvisor.java     # 重读拦截器 | Re-reading advisor
 ├── chatmemory/           # 对话记忆管理 | Chat memory management
 │   └── FileBasedChatMemory.java  # 基于文件的对话记忆 | File-based chat memory
+├── config/               # 配置类 | Configuration classes (新增)
+│   └── CorsConfig.java           # CORS 跨域配置 | CORS configuration
 ├── constant/             # 常量定义 | Constants
 │   └── FileConstant.java         # 文件路径常量 | File path constants
 ├── controller/           # REST 控制器 | REST controllers
@@ -129,6 +172,23 @@ yu-agent-search-mcp-server/
         └── ImageSearchToolTest.java          # 图像搜索工具测试 | Image search tool test
 ```
 
+**前端应用模块 | Frontend Application Module (新增):**
+```
+yu-ai-agent-frontend/
+├── package.json                  # 项目依赖和脚本配置 | Dependencies and scripts config
+├── vite.config.js               # Vite 构建配置 | Vite build configuration
+├── index.html                   # HTML 入口文件 | HTML entry file
+├── src/
+│   ├── main.js                  # 应用入口文件 | Application entry point
+│   ├── App.vue                  # 根组件 | Root component
+│   ├── style.css                # 全局样式 | Global styles
+│   └── components/              # Vue 组件目录 | Vue components directory
+│       ├── Home.vue             # 首页组件 | Home page component
+│       └── LoveChat.vue         # 恋爱咨询聊天组件 | Love consultation chat component
+├── node_modules/                # 依赖包目录 | Dependencies directory
+└── README.md                    # 前端项目说明文档 | Frontend project documentation
+```
+
 ### 技术栈 | Technology Stack
 
 **核心框架 | Core Frameworks:**
@@ -136,6 +196,14 @@ yu-agent-search-mcp-server/
 - Spring Boot 3.5.4 (Java 21) - MCP 服务器 | MCP server (新增)
 - Spring AI 1.0.0-M6 (Ollama + Alibaba Cloud AI)
 - LangChain4j 1.0.0-beta2 (DashScope Community)
+
+**前端技术栈 | Frontend Technology Stack (新增):**
+- **Vue 3.4.0+**: 渐进式 JavaScript 框架 | Progressive JavaScript framework
+- **Vite 5.0.0+**: 下一代前端构建工具 | Next generation frontend build tool
+- **Vue Router 4.2.5+**: Vue 官方路由管理器 | Official router for Vue.js
+- **Axios 1.6.0+**: 基于 Promise 的 HTTP 客户端 | Promise-based HTTP client
+- **ES Modules**: 现代 JavaScript 模块系统 | Modern JavaScript module system
+- **Server-Sent Events (SSE)**: 实时流式数据通信 | Real-time streaming data communication
 
 **AI 集成 | AI Integration:**
 - **DashScope**: 阿里云通义千问模型 (qwen-plus) | Alibaba Cloud Qwen models
@@ -180,6 +248,18 @@ yu-agent-search-mcp-server/
 - Knife4j: API 文档增强 | Enhanced API documentation
 - Hutool: 工具类库 | Utility library
 - iText PDF: PDF 文档生成库 | PDF document generation library
+
+**前端开发工具 | Frontend Development Tools (新增):**
+- **@vitejs/plugin-vue**: Vue 3 支持插件 | Vue 3 support plugin
+- **Node.js & npm**: JavaScript 运行时和包管理器 | JavaScript runtime and package manager
+- **开发服务器**: 热重载和快速刷新 | Hot reload and fast refresh
+- **构建优化**: 代码分割和懒加载 | Code splitting and lazy loading
+
+**跨域解决方案 | CORS Solutions (新增):**
+- **Spring Boot CORS**: 后端跨域配置 | Backend CORS configuration  
+- **CorsFilter**: 统一跨域过滤器 | Unified CORS filter
+- **配置化管理**: 通过 `cors.allowed-origins` 配置允许的域名 | Configurable allowed origins
+- **开发环境支持**: 支持 `localhost` 和 `127.0.0.1` 多端口访问 | Development environment multi-port support
 
 ### 关键架构概念 | Key Architectural Concepts
 
@@ -300,6 +380,52 @@ yu-agent-search-mcp-server/
 - **配置隔离**: 不同模式的配置文件分离管理
 - **测试支持**: 完整的单元测试和集成测试框架
 
+**9. 前端应用架构 | Frontend Application Architecture (新增)**
+
+**Vue 3 应用设计模式 | Vue 3 Application Design Pattern:**
+- **组件化架构**: 基于 Vue 3 Composition API 的组件化设计
+- **单页应用**: SPA (Single Page Application) 架构，客户端路由管理
+- **响应式设计**: 移动端友好的响应式布局和交互设计
+- **模块化开发**: ES Modules 模块系统，代码组织清晰
+
+**实时通信架构 | Real-time Communication Architecture:**
+- **SSE 客户端**: 基于 EventSource API 的服务端推送事件处理
+- **流式数据处理**: 实时接收和展示 AI 对话流式响应
+- **连接管理**: 自动重连机制和连接状态监控
+- **错误处理**: 网络异常和连接中断的优雅处理
+
+**前后端分离设计 | Frontend-Backend Separation Design:**
+- **RESTful API**: 标准的 HTTP API 接口调用
+- **跨域处理**: CORS 配置支持开发和生产环境
+- **数据格式**: JSON 数据交换格式，统一的请求响应结构
+- **状态管理**: 组件内状态管理和会话状态维护
+
+**用户界面架构 | User Interface Architecture:**
+- **路由系统**: Vue Router 4 提供页面导航和路由管理
+- **组件通信**: Props 和 Events 实现父子组件通信
+- **样式架构**: 组件化 CSS 样式，支持主题定制
+- **交互设计**: 现代化的用户交互体验和动画效果
+
+**构建和部署架构 | Build and Deployment Architecture:**
+- **Vite 构建系统**: 快速的开发构建和热重载支持
+- **代码优化**: 自动代码分割和懒加载优化
+- **资源管理**: 静态资源处理和版本控制
+- **部署策略**: 支持静态资源部署和 CDN 分发
+
+**10. 跨域处理架构 | Cross-Origin Resource Sharing (CORS) Architecture (新增)**
+
+**CORS 配置策略 | CORS Configuration Strategy:**
+- **后端配置**: Spring Boot CorsFilter 统一处理跨域请求
+- **域名白名单**: 配置文件管理允许访问的前端域名列表
+- **请求方法支持**: 支持 GET、POST、PUT、DELETE、OPTIONS 等 HTTP 方法
+- **请求头处理**: 允许所有请求头，支持自定义认证头
+
+**开发环境跨域 | Development Environment CORS:**
+- **本地开发支持**: 支持 `localhost` 和 `127.0.0.1` 多种本地地址
+- **端口灵活配置**: 支持前端多端口开发（5173、5174等）
+- **热重载兼容**: 开发环境下的实时刷新和跨域访问
+- **调试友好**: 完整的 CORS 头信息和错误提示
+
 ## 开发指南 | Development Guidelines
 
 ### 添加新的 AI 调用方式 | Adding New AI Invocation Methods
@@ -398,12 +524,57 @@ yu-agent-search-mcp-server/
 2. **检索后排序**: 基于业务规则对检索结果重新排序
 3. **检索缓存**: 实现查询结果缓存机制提升性能
 
+### 前端开发指南 | Frontend Development Guide (新增)
+
+**创建新的 Vue 组件 | Creating New Vue Components:**
+1. **组件创建**: 在 `src/components/` 目录下创建新的 `.vue` 文件
+2. **组件结构**: 使用 `<template>`, `<script>`, `<style>` 三段式结构
+3. **组合式 API**: 推荐使用 Vue 3 Composition API (`<script setup>` 语法)
+4. **组件注册**: 在父组件中导入并注册子组件
+5. **路由配置**: 在 `src/main.js` 中配置新页面的路由
+
+**前后端数据交互 | Frontend-Backend Data Interaction:**
+1. **API 调用**: 使用 Axios 进行 HTTP 请求，支持 Promise 和 async/await
+2. **SSE 连接**: 使用 EventSource API 建立服务端推送连接
+3. **错误处理**: 实现统一的请求错误处理和用户提示
+4. **数据格式**: 遵循 JSON 数据交换标准，处理流式数据响应
+5. **状态管理**: 在组件内维护对话状态和连接状态
+
+**前端开发最佳实践 | Frontend Development Best Practices:**
+1. **响应式设计**: 使用 CSS Media Queries 和 Flexbox 实现移动端适配
+2. **组件复用**: 抽取通用组件，提高代码复用性
+3. **性能优化**: 使用懒加载和代码分割优化加载性能
+4. **用户体验**: 实现加载状态、错误状态和空状态的友好提示
+5. **代码规范**: 遵循 Vue 3 官方风格指南和 ES6+ 语法规范
+
+**前端调试策略 | Frontend Debugging Strategy:**
+1. **开发工具**: 使用浏览器开发者工具进行调试和性能分析
+2. **Vue DevTools**: 安装 Vue 开发者工具进行组件状态和事件调试
+3. **网络监控**: 监控 API 请求和 SSE 连接状态
+4. **错误日志**: 实现前端错误收集和上报机制
+5. **跨域测试**: 验证不同域名和端口下的跨域访问功能
+
+**前端构建和部署 | Frontend Build and Deployment:**
+1. **开发构建**: 使用 `npm run dev` 启动开发服务器
+2. **生产构建**: 使用 `npm run build` 生成生产版本
+3. **静态部署**: 将构建产物部署到 CDN 或静态服务器
+4. **环境配置**: 根据不同环境配置 API 基础地址
+5. **版本管理**: 使用语义化版本号管理前端应用版本
+
 ### 配置管理 | Configuration Management
 - 敏感信息 (如 API 密钥) 配置在 `application-local.yml`
 - 公共配置放在 `application.yml`
 - 使用 Spring Profiles 进行环境隔离
 - RAG 相关配置: 向量维度、检索数量、相似度阈值等
+- **CORS 跨域配置**: 在 `application.yml` 中配置 `cors.allowed-origins` 允许的前端域名 (新增)
 - **MCP 服务器配置**: MCP 服务器的配置文件位于 `yu-agent-search-mcp-server/src/main/resources/`，支持不同通信模式的配置 (新增)
+
+### 前端配置管理 | Frontend Configuration Management (新增)
+- **Vite 配置**: `vite.config.js` 配置开发服务器端口、构建选项等
+- **包依赖管理**: `package.json` 管理项目依赖、脚本命令和版本信息
+- **环境变量**: 支持 `.env` 文件配置不同环境的 API 地址等参数
+- **构建配置**: 配置打包输出目录、资源处理和优化选项
+- **开发服务器**: 配置热重载、代理设置和 HTTPS 等开发环境选项
 
 ### 测试策略 | Testing Strategy
 - 单元测试位于 `src/test/java/` 对应包结构下
@@ -412,6 +583,15 @@ yu-agent-search-mcp-server/
 - **RAG 测试**: 使用 PgVectorVectorStoreConfigTest 和 MultiQueryExpanderDemoTest 作为参考
 - **工具调用测试**: 使用 FileOperationToolTest, ResourceDownloadToolTest, PDFGenerationToolTest 作为参考
 - **MCP 服务器测试**: MCP 工具测试位于 `yu-agent-search-mcp-server/src/test/java/` 包下，使用 ImageSearchToolTest 作为参考 (新增)
+
+### 前端测试策略 | Frontend Testing Strategy (新增)
+- **单元测试**: 使用 Vitest 或 Jest 进行 Vue 组件单元测试
+- **组件测试**: 使用 Vue Test Utils 测试组件行为和交互
+- **端到端测试**: 使用 Cypress 或 Playwright 进行完整用户流程测试
+- **API 集成测试**: 测试前后端 API 接口集成和数据交互
+- **跨域测试**: 验证不同环境下的跨域请求处理
+- **SSE 连接测试**: 测试实时流式数据接收和处理功能
+- **响应式测试**: 验证不同屏幕尺寸下的界面适配效果
 
 ### REST API 开发指南 | REST API Development Guide (新增)
 
@@ -474,13 +654,28 @@ yu-agent-search-mcp-server/
    - 第三方 API 密钥 (如 Pexels) 需要安全管理，避免泄露
    - MCP 服务器支持 SSE 和 STDIO 两种通信模式，根据客户端需求选择
    - 图像搜索等功能依赖外部 API，需要确保网络连接和 API 可用性
-13. **REST API 接口**: (新增)
+12. **前端应用部署**: (新增)
+   - 前端应用默认运行在端口 5173，开发时需要同时启动前后端服务
+   - Node.js 版本建议使用 16.x 或更高版本，确保与 Vite 5.x 兼容
+   - 前端应用需要配置正确的后端 API 地址，注意跨域和协议匹配
+   - 生产环境下建议使用 HTTPS 协议，确保 SSE 连接的稳定性
+13. **跨域配置管理**: (新增)
+   - CORS 配置需要根据前端部署域名进行调整，避免跨域请求失败
+   - 开发环境支持 `localhost` 和 `127.0.0.1` 多种地址，生产环境需配置实际域名
+   - 预检请求缓存时间设置为 1 小时，减少不必要的 OPTIONS 请求
+   - SSE 流式接口需要特别注意 CORS 头的正确设置，确保长连接稳定
+14. **REST API 接口**: (新增)
    - API 接口地址需要包含 `/api` 上下文路径前缀
    - SSE 流式接口需要客户端支持 Server-Sent Events 处理
    - 对话会话使用 `chatId` 参数进行会话隔离和记忆管理
    - 流式响应可能因网络或客户端断开连接而中断，需要实现重连机制
-14. **多模块项目管理**: (新增)
-   - 项目现在包含主应用和 MCP 服务器两个独立的 Spring Boot 应用
-   - 两个应用可以独立启动、部署和扩展
-   - 建议使用 Maven 多模块管理或独立仓库管理两个应用
-   - 开发时需要同时启动两个应用才能完整测试 MCP 功能
+15. **多模块项目管理**: (新增)
+   - 项目现在包含主应用、MCP 服务器和前端应用三个独立模块
+   - 三个模块可以独立启动、部署和扩展，支持分布式开发
+   - 建议使用 Maven 多模块管理后端应用，npm workspace 管理前端模块
+   - 完整开发环境需要同时启动三个应用：主应用(8123)、MCP服务器(8127)、前端(5173)
+16. **实时通信管理**: (新增)
+   - SSE 连接可能因网络波动或服务器重启而中断，前端需要实现自动重连机制
+   - 流式 AI 响应处理需要考虑数据完整性，避免消息截断或乱序
+   - 长时间无响应的连接需要设置超时机制，避免资源占用
+   - 生产环境下建议配置负载均衡和连接保持策略
